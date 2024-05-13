@@ -7,6 +7,7 @@ cd $WORKSPACE
 
 pip3 install pygame==2.4.0 pillow==6.2.2
 
+source /opt/ros/noetic/setup.bash
 catkin_make
 
 {

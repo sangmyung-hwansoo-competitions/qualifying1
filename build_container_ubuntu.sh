@@ -8,7 +8,7 @@ then
 fi
 
 # 컨테이너 생성 및 실행 변수 설정
-CONTAINER_NAME="qualifying1_container"
+CONTAINER_NAME="q1"
 IMAGE_NAME="ubuntu:20.04"
 LOCAL_WORKSPACE_DIR=`pwd`/catkin_ws
 DOCKER_WORKSPACE_DIR="/root/catkin_ws"
