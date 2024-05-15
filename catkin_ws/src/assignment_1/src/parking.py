@@ -64,6 +64,6 @@ def tracking(screen, x, y, yaw, velocity, max_acceleration, dt):
     global rx, ry
     angle = 50 # -50 ~ 50
     speed = 50 # -50 ~ 50
-    
+
     drive(angle, speed)
 
