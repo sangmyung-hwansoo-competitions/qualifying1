@@ -18,7 +18,19 @@ class PurePursuit:
     def set_path(self, path):
         self.path = path
 
-    def calc_pure_pursuit(self, x, y, yaw, v, length):
+    def get_current_waypoint(self, x, y):
+        min_dist = float('inf')
+        current_waypoint = -1
+        for i in range(len(self.path[0])):
+            dx = x - self.path[0][i]
+            dy = y - self.path[1][i]
+            dist = sqrt(pow(dx, 2) + pow(dy, 2))
+            if min_dist > dist:
+                min_dist = dist
+                current_waypoint = i
+        return current_waypoint
+
+    def calc_pure_pursuit(self, current_waypoint, x, y, yaw, v, length):
         # 속도 비례 Look Ahead Distance 값 설정
         self.lfd = (v) * self.lfd_gain
 
@@ -33,13 +45,13 @@ class PurePursuit:
 
         # 좌표 변환 행렬 생성
         trans_matrix = np.array([
-                [cos(yaw), -sin(yaw),translation[0]],
-                [sin(yaw),cos(yaw),translation[1]],
-                [0                    ,0                    ,1            ]])
+                [cos(yaw), -sin(yaw), translation[0]],
+                [sin(yaw), cos(yaw), translation[1]],
+                [0       , 0       , 1]])
 
         det_trans_matrix = np.linalg.inv(trans_matrix)
 
-        for i in range(len(self.path[0])):
+        for i in range(current_waypoint, len(self.path[0])):
             path_point = [self.path[0][i], self.path[1][i], 1]
             local_path_point = det_trans_matrix.dot(path_point)
 

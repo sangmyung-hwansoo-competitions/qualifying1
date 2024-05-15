@@ -21,7 +21,7 @@ import matplotlib.pyplot as plt
 
 ## 실행 예시
 
-def is_goal_reached(current_x, current_y, current_yaw, goal_x, goal_y, goal_yaw, pos_threshold=1.0, yaw_threshold=0.2):
+def is_goal_reached(current_x, current_y, current_yaw, goal_x, goal_y, goal_yaw, pos_threshold=1.5, yaw_threshold=0.3):
     distance = sqrt((current_x - goal_x)**2 + (current_y - goal_y)**2)
     yaw_diff = abs(twopify(current_yaw) - twopify(goal_yaw))
     return distance < pos_threshold and yaw_diff < yaw_threshold
@@ -61,7 +61,7 @@ if __name__ == '__main__':
 
     degree_alpha = 90
 
-    sx1, sy1, syaw = 100.0, 750.0, 180.0
+    sx1, sy1, syaw = 1100.0, 300.0, 225.0
     syaw = np.deg2rad(syaw+degree_alpha)
     syaw = twopify(syaw)
     start_state1 = [sx1, sy1, syaw]
@@ -85,7 +85,7 @@ if __name__ == '__main__':
     path_x2, path_y2, path_yaw2 = cartesian_path2
 
     pid_controller = PIDController()
-    max_velocity = 80
+    max_velocity = 50
     velocity_planner = velocityPlanning(max_velocity/3.6, 0.15)
     target_speeds = velocity_planner.curvedBaseVelocity(cartesian_path1[:2], point_num=50)
     pure_pursuit = PurePursuit()
@@ -109,9 +109,10 @@ if __name__ == '__main__':
             vehicle.update(vehicle.x, vehicle.y, vehicle.yaw, 0.0)
             break
 
-        target_speed = target_speeds[i]
+        current_waypoint = pure_pursuit.get_current_waypoint(vehicle.x, vehicle.y)
+        target_speed = target_speeds[current_waypoint]*3.6
+        steer_angle = pure_pursuit.calc_pure_pursuit(current_waypoint, vehicle.x, vehicle.y, vehicle.yaw, vehicle.v, vehicle.length)
         throttle = pid_controller.control(target_speed, vehicle.v, dt)
-        steer_angle = pure_pursuit.calc_pure_pursuit(vehicle.x, vehicle.y, vehicle.yaw, vehicle.v, vehicle.length)
         print(f"throttle: {throttle}, steer_angle: {steer_angle}")
 
         current_speed += throttle * dt
