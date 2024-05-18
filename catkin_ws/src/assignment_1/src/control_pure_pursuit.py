@@ -7,7 +7,7 @@ class PurePursuit:
     def __init__(self):
         # Parmeter
         self.lfd = 0.0
-        self.min_lfd = 2.3
+        self.min_lfd = 3.0
         self.max_lfd = 30
         self.lfd_gain = 0.6
 

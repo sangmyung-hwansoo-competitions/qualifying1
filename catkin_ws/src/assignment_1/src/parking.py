@@ -10,10 +10,16 @@
 #=============================================
 import pygame
 import numpy as np
-import math
 import rospy
 from xycar_msgs.msg import xycar_motor
+from math import cos, sin, sqrt, pow, atan2
 
+from control_pid import PIDController
+from control_longitudinal_planning import velocityPlanning
+from control_pure_pursuit import PurePursuit
+from model_vehicle import VehicleModel
+from path_dubins import Dubins
+from path_dubins import twopify, pify
 #=============================================
 # 모터 토픽을 발행할 것임을 선언
 #=============================================
@@ -23,14 +29,20 @@ xycar_msg = xycar_motor()
 #=============================================
 # 프로그램에서 사용할 변수, 저장공간 선언부
 #=============================================
-rx, ry = [300, 350, 400, 450], [300, 350, 400, 450]
-
+vehicle = None
+cartesian_path = None
+pid_controller = PIDController()
+max_velocity = 50
+velocity_planner = velocityPlanning(max_velocity/3.6, 0.15)
+target_speeds = None
+pure_pursuit = PurePursuit()
 #=============================================
 # 프로그램에서 사용할 상수 선언부
 #=============================================
 AR = (1142, 62) # AR 태그의 위치
 P_ENTRY = (1036, 162) # 주차라인 진입 시점의 좌표
 P_END = (1129, 69) # 주차라인 끝의 좌표
+P_TARGET = (1082.5, 115.5, 5.497787143782138) # 주차라인 중간의 좌표
 
 #=============================================
 # 모터 토픽을 발행하는 함수
@@ -49,10 +61,32 @@ def drive(angle, speed):
 # 경로를 리스트를 생성하여 반환한다.
 #=============================================
 def planning(sx, sy, syaw, max_acceleration, dt):
-    global rx, ry
-    print("Start Planning")
+    global vehicle, cartesian_path, pid_controller, velocity_planner, target_speeds, pure_pursuit
 
-    return rx, ry
+    kappa_ = 1./220
+    dubins = Dubins()
+    degree_alpha = 90
+
+    syaw = np.deg2rad(syaw+degree_alpha)
+    syaw = twopify(syaw)
+    start_state = [sx, sy, syaw]
+
+    print(f"start_state: {start_state}")
+
+    vehicle = VehicleModel(length=80, width=64, rear_axle_ratio=0.6/2, x=sx, y=sy, yaw=syaw, v=0.0)
+
+    gx_center, gy_center, gyaw = P_TARGET
+    goal_state = [gx_center, gy_center, gyaw]
+
+    print(f"goal_state: {goal_state}")
+
+    cartesian_path, controls, dubins_path = dubins.plan(start_state, goal_state, kappa_)
+    path_x, path_y, path_yaw = cartesian_path
+
+    target_speeds = velocity_planner.curvedBaseVelocity(cartesian_path[:2], point_num=50)
+    pure_pursuit.set_path(cartesian_path)
+
+    return path_x, path_y
 
 #=============================================
 # 생성된 경로를 따라가는 함수
@@ -61,9 +95,31 @@ def planning(sx, sy, syaw, max_acceleration, dt):
 # 각도와 속도를 결정하여 주행한다.
 #=============================================
 def tracking(screen, x, y, yaw, velocity, max_acceleration, dt):
-    global rx, ry
-    angle = 50 # -50 ~ 50
-    speed = 50 # -50 ~ 50
+    global vehicle, cartesian_path, pid_controller, velocity_planner, target_speeds, pure_pursuit
 
-    drive(angle, speed)
+    degree_alpha = 270
 
+    if is_goal_reached(vehicle.x, vehicle.y, vehicle.yaw, P_TARGET):
+        print("Goal reached.")
+        vehicle.update(vehicle.x, vehicle.y, vehicle.yaw, 0.0)
+        drive(0, 0)
+        return
+
+    vehicle.update(x, y, twopify(np.deg2rad(yaw+degree_alpha)), velocity)
+
+    current_waypoint = pure_pursuit.get_current_waypoint(vehicle.x, vehicle.y)
+    target_speed = target_speeds[current_waypoint]*3.6
+    steer_angle = pure_pursuit.calc_pure_pursuit(current_waypoint, vehicle.x, vehicle.y, vehicle.yaw, vehicle.v, vehicle.length)
+    throttle = pid_controller.control(target_speed, vehicle.v, dt)
+
+    steering = np.rad2deg(steer_angle)
+    print(f"speed: {throttle}, steer_angle: {steering}")
+
+    drive(steering, throttle)
+
+
+def is_goal_reached(current_x, current_y, current_yaw, P_TARGET, pos_threshold=30, yaw_threshold=0.3):
+    goal_x, goal_y, goal_yaw = P_TARGET
+    distance = sqrt((current_x - goal_x)**2 + (current_y - goal_y)**2)
+    yaw_diff = abs(twopify(current_yaw) - twopify(goal_yaw))
+    return distance < pos_threshold and yaw_diff < yaw_threshold

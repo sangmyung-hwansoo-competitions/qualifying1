@@ -61,7 +61,7 @@ if __name__ == '__main__':
 
     degree_alpha = 90
 
-    sx1, sy1, syaw = 1100.0, 300.0, 225.0
+    sx1, sy1, syaw = 100.0, 350.0, 225.0
     syaw = np.deg2rad(syaw+degree_alpha)
     syaw = twopify(syaw)
     start_state1 = [sx1, sy1, syaw]

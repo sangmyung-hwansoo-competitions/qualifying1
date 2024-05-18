@@ -11,7 +11,7 @@ class velocityPlanning:
     def curvedBaseVelocity(self, gloabl_path, point_num):
         out_vel_plan = []
 
-        for i in range(0,point_num):
+        for i in range(0, point_num):
             out_vel_plan.append(self.max_speed * 0.45)
 
         for i in range(point_num, len(gloabl_path[0])- point_num):
