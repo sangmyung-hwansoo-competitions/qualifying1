@@ -42,7 +42,7 @@ pure_pursuit = PurePursuit()
 AR = (1142, 62) # AR 태그의 위치
 P_ENTRY = (1036, 162) # 주차라인 진입 시점의 좌표
 P_END = (1129, 69) # 주차라인 끝의 좌표
-P_TARGET = (1082.5, 115.5, 5.497787143782138) # 주차라인 중간의 좌표
+P_TARGET = (1105.75, 92.25, 5.497787143782138) # 주차라인 내부 좌표
 
 #=============================================
 # 모터 토픽을 발행하는 함수
@@ -66,6 +66,8 @@ def planning(sx, sy, syaw, max_acceleration, dt):
     kappa_ = 1./220
     dubins = Dubins()
     degree_alpha = 90
+
+    print(syaw)
 
     syaw = np.deg2rad(syaw+degree_alpha)
     syaw = twopify(syaw)
@@ -97,28 +99,41 @@ def planning(sx, sy, syaw, max_acceleration, dt):
 def tracking(screen, x, y, yaw, velocity, max_acceleration, dt):
     global vehicle, cartesian_path, pid_controller, velocity_planner, target_speeds, pure_pursuit
 
-    degree_alpha = 270
+    ## 225.0 + 90 = 315, 45 # 오른쪽 위 방향
+    ## 180.0 + 90 = 270, 90 # 위 방향
+    ## 135.0 + 90 = 225, 135 # 왼쪽 위 방향
+    ## 135.0 + 90 = 225, 135 # 왼쪽 위 방향
+    ## 225.0 + 90 = 315, 45 # 오른쪽 위 방향
+
+    degree_alpha = 360
+    # print(f"x: {x}, y: {y}, yaw: {yaw}, yaw: {twopify(np.deg2rad(-(yaw)+degree_alpha))}")
 
     if is_goal_reached(vehicle.x, vehicle.y, vehicle.yaw, P_TARGET):
         print("Goal reached.")
-        vehicle.update(vehicle.x, vehicle.y, vehicle.yaw, 0.0)
-        drive(0, 0)
+        if(vehicle.v > 0):
+            drive(-5, 0)
+        else:
+            drive(0, 0)
+        vehicle.update(vehicle.x, vehicle.y, vehicle.yaw, vehicle.v)
         return
 
-    vehicle.update(x, y, twopify(np.deg2rad(yaw+degree_alpha)), velocity)
+    vehicle.update(x, y, twopify(np.deg2rad(-(yaw)+degree_alpha)), velocity)
 
     current_waypoint = pure_pursuit.get_current_waypoint(vehicle.x, vehicle.y)
     target_speed = target_speeds[current_waypoint]*3.6
     steer_angle = pure_pursuit.calc_pure_pursuit(current_waypoint, vehicle.x, vehicle.y, vehicle.yaw, vehicle.v, vehicle.length)
     throttle = pid_controller.control(target_speed, vehicle.v, dt)
 
-    steering = np.rad2deg(steer_angle)
-    print(f"speed: {throttle}, steer_angle: {steering}")
 
-    drive(steering, throttle)
+    # pub_speed = vehicle.v + throttle * dt
+    pub_angle = np.clip(np.rad2deg(steer_angle), -50, 50)
+    throttle = np.clip(throttle, -20, 50)
+    print(f"throttle: {throttle}, steer_angle: {pub_angle}")
+
+    drive(pub_angle, throttle)
 
 
-def is_goal_reached(current_x, current_y, current_yaw, P_TARGET, pos_threshold=30, yaw_threshold=0.3):
+def is_goal_reached(current_x, current_y, current_yaw, P_TARGET, pos_threshold=3, yaw_threshold=0.3):
     goal_x, goal_y, goal_yaw = P_TARGET
     distance = sqrt((current_x - goal_x)**2 + (current_y - goal_y)**2)
     yaw_diff = abs(twopify(current_yaw) - twopify(goal_yaw))

@@ -21,7 +21,7 @@ import matplotlib.pyplot as plt
 
 ## 실행 예시
 
-def is_goal_reached(current_x, current_y, current_yaw, goal_x, goal_y, goal_yaw, pos_threshold=1.5, yaw_threshold=0.3):
+def is_goal_reached(current_x, current_y, current_yaw, goal_x, goal_y, goal_yaw, pos_threshold=3, yaw_threshold=0.3):
     distance = sqrt((current_x - goal_x)**2 + (current_y - goal_y)**2)
     yaw_diff = abs(twopify(current_yaw) - twopify(goal_yaw))
     return distance < pos_threshold and yaw_diff < yaw_threshold
@@ -61,12 +61,12 @@ if __name__ == '__main__':
 
     degree_alpha = 90
 
-    sx1, sy1, syaw = 100.0, 350.0, 225.0
+    sx1, sy1, syaw = 1100.0, 300.0, 225.0
     syaw = np.deg2rad(syaw+degree_alpha)
     syaw = twopify(syaw)
     start_state1 = [sx1, sy1, syaw]
 
-    vehicle = VehicleModel(length=80, width=40,rear_axle_ratio=0.6/2, x=sx1, y=sy1, yaw=syaw, v=0.0)
+    vehicle = VehicleModel(length=128, width=64,rear_axle_ratio=0.6/2, x=sx1, y=sy1, yaw=syaw, v=0.0)
     sx2, sy2 = vehicle.get_rear_coordinates()
     start_state2 = [sx2, sy2, syaw]
 
