@@ -66,9 +66,7 @@ if __name__ == '__main__':
     syaw = twopify(syaw)
     start_state1 = [sx1, sy1, syaw]
 
-    vehicle = VehicleModel(length=128, width=64,rear_axle_ratio=0.6/2, x=sx1, y=sy1, yaw=syaw, v=0.0)
-    sx2, sy2 = vehicle.get_rear_coordinates()
-    start_state2 = [sx2, sy2, syaw]
+    vehicle = VehicleModel(length=128, width=64, x=sx1, y=sy1, yaw=syaw, v=0.0)
 
     gx1, gy1 = 1036, 162    # 주차라인 진입 시점의 좌표
     gx2, gy2 = 1129, 69     # 주차라인 끝의 좌표
@@ -81,16 +79,12 @@ if __name__ == '__main__':
     cartesian_path1, controls1, dubins_path1 = dubins.plan(start_state1, goal_state, kappa_)
     path_x1, path_y1, path_yaw1 = cartesian_path1
 
-    cartesian_path2, controls2, dubins_path2 = dubins.plan(start_state2, goal_state, kappa_)
-    path_x2, path_y2, path_yaw2 = cartesian_path2
-
     pid_controller = PIDController()
     max_velocity = 50
     velocity_planner = velocityPlanning(max_velocity/3.6, 0.15)
     target_speeds = velocity_planner.curvedBaseVelocity(cartesian_path1[:2], point_num=50)
     pure_pursuit = PurePursuit()
     pure_pursuit.set_path(cartesian_path1)
-
 
     dt = 0.1
     fig, ax = plt.subplots()
@@ -126,7 +120,6 @@ if __name__ == '__main__':
         ax.plot(gx1, gy1, 'rx', label='goal_startline')
         ax.plot(gx2, gy2, 'rx', label='goal_endline')
         ax.plot(path_x1, path_y1, 'g-')
-        ax.plot(path_x2, path_y2, 'b-')
         ax.plot(result_path_x, result_path_y, 'r-', label='result')
 
         ax.arrow(sx1, sy1, 40 * np.cos(syaw), 40 * np.sin(syaw), head_width=10, head_length=10, fc='r', ec='r')

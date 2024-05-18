@@ -75,14 +75,17 @@ def planning(sx, sy, syaw, max_acceleration, dt):
 
     print(f"start_state: {start_state}")
 
-    vehicle = VehicleModel(length=80, width=64, rear_axle_ratio=0.6/2, x=sx, y=sy, yaw=syaw, v=0.0)
+    vehicle = VehicleModel(length=128, width=64, x=sx, y=sy, yaw=syaw, v=0.0)
+    vehicle_front_x, vehicle_front_y = vehicle.get_front_coordinates()
+    start_state_front = [vehicle_front_x, vehicle_front_y, syaw]
+
 
     gx_center, gy_center, gyaw = P_TARGET
     goal_state = [gx_center, gy_center, gyaw]
 
     print(f"goal_state: {goal_state}")
 
-    cartesian_path, controls, dubins_path = dubins.plan(start_state, goal_state, kappa_)
+    cartesian_path, controls, dubins_path = dubins.plan(start_state_front, goal_state, kappa_)
     path_x, path_y, path_yaw = cartesian_path
 
     target_speeds = velocity_planner.curvedBaseVelocity(cartesian_path[:2], point_num=50)
@@ -118,10 +121,12 @@ def tracking(screen, x, y, yaw, velocity, max_acceleration, dt):
         return
 
     vehicle.update(x, y, twopify(np.deg2rad(-(yaw)+degree_alpha)), velocity)
+    vehicle_front_x, vehicle_front_y = vehicle.get_front_coordinates()
 
-    current_waypoint = pure_pursuit.get_current_waypoint(vehicle.x, vehicle.y)
+
+    current_waypoint = pure_pursuit.get_current_waypoint(vehicle_front_x, vehicle_front_y)
     target_speed = target_speeds[current_waypoint]*3.6
-    steer_angle = pure_pursuit.calc_pure_pursuit(current_waypoint, vehicle.x, vehicle.y, vehicle.yaw, vehicle.v, vehicle.length)
+    steer_angle = pure_pursuit.calc_pure_pursuit(current_waypoint, vehicle_front_x, vehicle_front_y, vehicle.yaw, vehicle.v, vehicle.length)
     throttle = pid_controller.control(target_speed, vehicle.v, dt)
 
 
