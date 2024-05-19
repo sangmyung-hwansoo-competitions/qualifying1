@@ -3,9 +3,9 @@
 
 class PIDController:
     def __init__(self):
-        self.p_gain = 0.15 # default 0.3 0.5 -> 1.0
-        self.i_gain = 0.03 # 0.01 -> 0.03
-        self.d_gain = 0.03 # default 0.03 0.9 -> 0.7 -> 1.0
+        self.p_gain = 1.8 # default 0.3 0.5 -> 1.0
+        self.i_gain = 0.3 # 0.01 -> 0.03
+        self.d_gain = 1.0 # default 0.03 0.9 -> 0.7 -> 1.0
         self.prev_error = 0
         self.i_control = 0
 

@@ -214,3 +214,33 @@ class Dubins(object):
         cartesian_path = self.controls_to_cartesian_path(controls, state1)
 
         return cartesian_path, controls, dubins_path
+
+    def plan_waypoint(self, waypoints, kappa):
+        all_xs, all_ys, all_yaws = [], [], []
+        all_controls = []
+        all_dubins_paths = []
+
+        for i in range(len(waypoints) - 1):
+            state1 = waypoints[i]
+            state2 = waypoints[i + 1]
+            dx = state2[0] - state1[0]
+            dy = state2[1] - state1[1]
+            th = np.arctan2(dy, dx)
+
+            d = np.hypot(dx, dy) * kappa
+            alpha = twopify(state1[2] - th)
+            beta = twopify(state2[2] - th)
+
+            dubins_path = self.get_best_dubins_path(d, alpha, beta)
+            controls = self.dubins_path_to_controls(dubins_path, kappa)
+            cartesian_path = self.controls_to_cartesian_path(controls, state1)
+
+            if cartesian_path:
+                xs, ys, yaws = cartesian_path
+                all_xs.extend(xs)
+                all_ys.extend(ys)
+                all_yaws.extend(yaws)
+                all_controls.extend(controls)
+                all_dubins_paths.append(dubins_path)
+
+        return (all_xs, all_ys, all_yaws), all_controls, all_dubins_paths

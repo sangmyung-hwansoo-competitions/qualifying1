@@ -33,7 +33,7 @@ vehicle = None
 cartesian_path = None
 pid_controller = PIDController()
 max_velocity = 50
-velocity_planner = velocityPlanning(max_velocity/3.6, 0.15)
+velocity_planner = velocityPlanning(max_velocity, 0.15)
 target_speeds = None
 pure_pursuit = PurePursuit()
 #=============================================
@@ -42,7 +42,10 @@ pure_pursuit = PurePursuit()
 AR = (1142, 62) # AR 태그의 위치
 P_ENTRY = (1036, 162) # 주차라인 진입 시점의 좌표
 P_END = (1129, 69) # 주차라인 끝의 좌표
-P_TARGET = (1105.75, 92.25, 5.497787143782138) # 주차라인 내부 좌표
+P_TARGET1 = (1059.25, 138.75, 5.497787143782138) # 주차라인 내부 좌표, 1/4 지점
+P_TARGET2 = (1082.5, 115.5, 5.497787143782138) # 주차라인 내부 좌표, 2/4 지점
+P_TARGET3 = (1105.75, 92.25, 5.497787143782138) # 주차라인 내부 좌표, 3/4 지점
+P_TARGET4 = (1117.375, 80.625, 5.497787143782138) # 주차라인 내부 좌표, 3.5/4 지점
 
 #=============================================
 # 모터 토픽을 발행하는 함수
@@ -67,8 +70,6 @@ def planning(sx, sy, syaw, max_acceleration, dt):
     dubins = Dubins()
     degree_alpha = 90
 
-    print(syaw)
-
     syaw = np.deg2rad(syaw+degree_alpha)
     syaw = twopify(syaw)
     start_state = [sx, sy, syaw]
@@ -79,15 +80,27 @@ def planning(sx, sy, syaw, max_acceleration, dt):
     vehicle_front_x, vehicle_front_y = vehicle.get_front_coordinates()
     start_state_front = [vehicle_front_x, vehicle_front_y, syaw]
 
+    gx1, gy1, gyaw = P_TARGET1
+    goal_state1 = [gx1, gy1, gyaw]
 
-    gx_center, gy_center, gyaw = P_TARGET
-    goal_state = [gx_center, gy_center, gyaw]
+    gx2, gy2, _ = P_TARGET2
+    goal_state2 = [gx2, gy2, gyaw]
 
-    print(f"goal_state: {goal_state}")
+    gx3, gy3, _ = P_TARGET3
+    goal_state3 = [gx3, gy3, gyaw]
 
-    cartesian_path, controls, dubins_path = dubins.plan(start_state_front, goal_state, kappa_)
+    gx4, gy4, _ = P_TARGET4
+    goal_state4 = [gx4, gy4, gyaw]
+
+    gx5, gy5 = P_END
+    goal_state5 = [gx5, gy5, gyaw]
+
+    waypoint = [start_state_front, goal_state1, goal_state2, goal_state3, goal_state4, goal_state5]
+
+    print(f"waypoint: {waypoint}")
+
+    cartesian_path, controls, dubins_path = dubins.plan_waypoint(waypoint, kappa_)
     path_x, path_y, path_yaw = cartesian_path
-
     target_speeds = velocity_planner.curvedBaseVelocity(cartesian_path[:2], point_num=50)
     pure_pursuit.set_path(cartesian_path)
 
@@ -109,37 +122,32 @@ def tracking(screen, x, y, yaw, velocity, max_acceleration, dt):
     ## 225.0 + 90 = 315, 45 # 오른쪽 위 방향
 
     degree_alpha = 360
-    # print(f"x: {x}, y: {y}, yaw: {yaw}, yaw: {twopify(np.deg2rad(-(yaw)+degree_alpha))}")
-
-    if is_goal_reached(vehicle.x, vehicle.y, vehicle.yaw, P_TARGET):
-        print("Goal reached.")
-        if(vehicle.v > 0):
-            drive(-5, 0)
-        else:
-            drive(0, 0)
-        vehicle.update(vehicle.x, vehicle.y, vehicle.yaw, vehicle.v)
-        return
 
     vehicle.update(x, y, twopify(np.deg2rad(-(yaw)+degree_alpha)), velocity)
     vehicle_front_x, vehicle_front_y = vehicle.get_front_coordinates()
 
-
     current_waypoint = pure_pursuit.get_current_waypoint(vehicle_front_x, vehicle_front_y)
-    target_speed = target_speeds[current_waypoint]*3.6
+    target_speed = target_speeds[current_waypoint]
     steer_angle = pure_pursuit.calc_pure_pursuit(current_waypoint, vehicle_front_x, vehicle_front_y, vehicle.yaw, vehicle.v, vehicle.length)
     throttle = pid_controller.control(target_speed, vehicle.v, dt)
 
+    throttle = vehicle.v + throttle * dt
 
     # pub_speed = vehicle.v + throttle * dt
     pub_angle = np.clip(np.rad2deg(steer_angle), -50, 50)
-    throttle = np.clip(throttle, -20, 50)
-    print(f"throttle: {throttle}, steer_angle: {pub_angle}")
+    throttle = np.clip(throttle, -50, 50)
+
+    if is_goal_reached(vehicle_front_x, vehicle_front_y, vehicle.yaw, P_END):
+        throttle = 0
+        pub_angle = 0
 
     drive(pub_angle, throttle)
 
 
-def is_goal_reached(current_x, current_y, current_yaw, P_TARGET, pos_threshold=3, yaw_threshold=0.3):
-    goal_x, goal_y, goal_yaw = P_TARGET
+# 0.18 = 10.도
+def is_goal_reached(current_x, current_y, current_yaw, P_TARGET, pos_threshold=3, yaw_threshold=0.18):
+    goal_x, goal_y = P_TARGET
+    goal_yaw = 5.497787143782138
     distance = sqrt((current_x - goal_x)**2 + (current_y - goal_y)**2)
     yaw_diff = abs(twopify(current_yaw) - twopify(goal_yaw))
     return distance < pos_threshold and yaw_diff < yaw_threshold
