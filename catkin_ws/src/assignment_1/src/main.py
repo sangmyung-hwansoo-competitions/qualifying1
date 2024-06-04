@@ -11,9 +11,19 @@ import signal
 import sys
 import os
 
+# 시그널 처리 함수
 def signal_handler(sig, frame):
-    os.system('killall -9 roslaunch roscore python')
-    sys.exit(0)
+    """
+    SIGINT (Ctrl+C) 신호가 감지되었을 때 호출되는 함수
 
+    - 종료할 모든 프로세스를 종료
+    - 현재 Python 스크립트를 종료 (성공 종료 코드 0).
+    """
+    os.system('killall -9 roslaunch roscore python')
+    sys.exit(0) 
+
+# 시그널 처리를 위한 신호 처리 함수
 signal.signal(signal.SIGINT, signal_handler)
+
+# simulator module에서 main 함수 실행
 simulator.main()
