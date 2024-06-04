@@ -71,18 +71,18 @@ class velocityPlanning:
             # 곡률 기반 최대 속도 계획
             v_max = sqrt(r*9.8*self.road_friction)
 
-            # 감속 계수 (곡률이 더 클 때 더 많이 감속)
-            if r < 5:       # 곡률 반경이 작을 때 더 많이 감속
-                deceleration_factor = 0.8
-            elif r < 10:    # 중간 정도의 곡률 반경
-                deceleration_factor = 0.85
-            elif r < 20:    # 중간 정도의 곡률 반경
-                deceleration_factor = 0.9
-            else:           # 곡률 반경이 클 때 덜 감속
-                deceleration_factor = 1.0  
+            # # 감속 계수 (곡률이 더 클 때 더 많이 감속)
+            # if r < 5:       # 곡률 반경이 작을 때 더 많이 감속
+            #     deceleration_factor = 0.8
+            # elif r < 10:    # 중간 정도의 곡률 반경
+            #     deceleration_factor = 0.85
+            # elif r < 20:    # 중간 정도의 곡률 반경
+            #     deceleration_factor = 0.9
+            # else:           # 곡률 반경이 클 때 덜 감속
+            #     deceleration_factor = 1.0  
             
-            # 반영
-            v_max *= deceleration_factor
+            # # 반영
+            # v_max *= deceleration_factor
 
             # 최대 속도 제한
             if v_max > self.max_speed:

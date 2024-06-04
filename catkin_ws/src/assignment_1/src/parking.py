@@ -53,6 +53,7 @@ P_TARGET4 = (1117.375, 80.625, 5.497787143782138)    # 주차라인 내부 좌�
 # 모터 토픽에 옮겨 담은 후에 토픽을 발행함.
 #=============================================
 def drive(angle, speed):
+    xycar_msg.header.stamp = rospy.Time.now()
     xycar_msg.angle = int(angle)
     xycar_msg.speed = int(speed)
     motor_pub.publish(xycar_msg)
