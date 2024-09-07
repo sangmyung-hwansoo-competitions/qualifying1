@@ -14,7 +14,7 @@
 
 ## Method
 **경로생성**
-- Dubins Algorithms
+- Dubins Algorithm
   
 <br/>
 
